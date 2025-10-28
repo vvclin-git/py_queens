@@ -1,0 +1,13 @@
+[project]
+name = "py-queens"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+  "pygame>=2.5.2",
+  "pygbag>=0.9.2",
+  "Pillow>=10.2.0",
+  "pymunk>=6.5.0",
+  "matplotlib>=3.10.7",
+]
