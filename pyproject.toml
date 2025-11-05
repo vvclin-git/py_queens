@@ -10,4 +10,9 @@ dependencies = [
   "Pillow>=10.2.0",
   "pymunk>=6.5.0",
   "matplotlib>=3.10.7",
+  "asttokens>=3.0.0",
+  "ipython>=9.6.0",
+  "comm>=0.2.3",
+  "ipywidgets>=8.1.8",
+  "ipympl>=0.9.8",
 ]
