@@ -3,7 +3,9 @@
 from matplotlib.colors import ListedColormap
 import matplotlib.pyplot as plt
 from IPython.display import clear_output, display
-
+from helpers import print_color_table
+import time
+import json
 
 
 class Cell:
@@ -24,11 +26,16 @@ class Node:
       
 
 class Board:
-    def __init__(self, group_map):
+    def __init__(self, group_map, value=None):
         self.group_map = group_map  
         self.num_groups = max(max(row) for row in self.group_map) + 1  # maximum value in loaded_board                          
         self.shape = (len(self.group_map), len(self.group_map[0]))
         self.grid = [[Cell(self.group_map[i][j], (j + 1, i + 1)) for j in range(self.shape[1])] for i in range(self.shape[0])]
+        if value:
+            for i in range(self.shape[0]):
+                for j in range(self.shape[1]):
+                    self.grid[i][j].value = value[i][j]
+                    
         self.placed_cells = []
         self.groups = [[] for i in range(self.num_groups)]
         self.occupied_groups = [[] for i in range(self.num_groups)]
@@ -191,9 +198,7 @@ class Board:
                     next_moves.append(c.pos)
         return next_moves
 
-    def draw(self):
-        # plt.clf()
-        clear_output(wait=True)
+    def draw(self, cell_output=True):
         self.init_draw()
         for i in range(self.shape[0]):
             for j in range(self.shape[1]):
@@ -201,21 +206,27 @@ class Board:
                     self.ax.plot(j + 0.5, i + 0.5, marker='o', markersize=12, markeredgecolor='black', markerfacecolor='yellow')
                 elif self.grid[i][j].value > 0 and self.grid[i][j].value < 6:
                     self.ax.plot(j + 0.5, i + 0.5, marker='x', markersize=12, markeredgecolor='black', markerfacecolor='black')
-         
-        display(self.ax.figure)
-        pass
+        # plt.clf()
+        if cell_output:
+            clear_output(wait=True)       
+            display(self.ax.figure)
+        return self.ax
 
-    def dump(self):
+    def dump(self, filename=None):
         output = [[0 for j in range(self.shape[1])] for i in range(self.shape[0])]
         for i, r in enumerate(self.grid):            
             for j, c in enumerate(r):
                 output[i][j] = c.value
+        if filename:
+            with open(filename, 'w') as f:
+                json.dump(output, f)
         return output
         
 
 class Game:
     def __init__(self, board):
         self.board = board
+        self.steps = 0
         
     
     def place(self, pos_in):
@@ -223,7 +234,7 @@ class Game:
         if self.board.grid[pos[0]][pos[1]].value == 0:
             self.board.place(pos_in)
             self.board.draw()
-            display(self.board.dump())
+            display(print_color_table(self.board.dump(), self.board.group_map))
             # print(f'place on {pos_in}')
             # print(f'number of groups occupied: {self.board.occupied_group_num} / {self.board.num_groups}')
             # for g in self.board.groups:
@@ -233,30 +244,35 @@ class Game:
         else:
             self.board.remove(pos_in)
             self.board.draw()
-            display(self.board.dump())
+            display(print_color_table(self.board.dump(), self.board.group_map))
             # print(f'remove on {pos_in}')
             # print(f'number of groups occupied: {self.board.occupied_group_num} / {self.board.num_groups}')
             # for g in self.board.groups:
             #     print(g)     
     
-    def play(self, node=None):        
+    def play(self, node=None, max_step=0):
+        if self.steps > max_step:
+            return
+        self.steps += 1        
         if not node:
             next_moves = self.board.get_next_moves()
             for m in next_moves:                
-                result = self.play(Node(self.board, m))
+                result = self.play(Node(self.board, m), max_step)
                 if result:
                     return result
                 self.board.undo_last()
         else:            
+            # timestr = time.strftime("%Y%m%d-%H-%M-%S")
             node.board.place(node.move)
+            node.board.dump(f'.\\dump\\steps_{self.steps}_dump.json')
             next_moves = node.board.get_next_moves()
-            print(f'place at {node.move}, next move number: {len(next_moves)}')
+            print(f'step {self.steps}: place at {node.move}, next move number: {len(next_moves)}')
             if len(next_moves) > 0:
                 for m in next_moves:
                     result = None
                     next_node = Node(node.board, m)
                     next_node.prev_node = node
-                    result = self.play(next_node)
+                    result = self.play(next_node, max_step)
                     if result:
                         return result
                     node.board.undo_last()
@@ -264,6 +280,8 @@ class Game:
                 if node.board.check():
                     print('game stuck, reverting the board')
                     node.board.undo_last()
+                    node.board.dump(f'.\\dump\\steps_{self.steps}_dump_stuck.json')
+                    # node.board.dump(f'.\\dump\\after_dump_{timestr}.json')
                     return
                 else:
                     print('game finished')

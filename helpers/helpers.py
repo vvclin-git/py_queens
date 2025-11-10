@@ -1,5 +1,4 @@
-# NOTE: Comments in English only
-
+  
 def print_color_table(values, color_groups, width=3):
     """Print values[][] using evenly spaced xterm-256 colors by group."""
     # Collect unique group IDs in first-appearance order
