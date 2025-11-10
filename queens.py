@@ -37,6 +37,7 @@ class Board:
                     self.grid[i][j].value = value[i][j]
                     
         self.placed_cells = []
+        self.placed_groups = []
         self.groups = [[] for i in range(self.num_groups)]
         self.occupied_groups = [[] for i in range(self.num_groups)]
         self.occupied_group_num = 0
@@ -117,6 +118,7 @@ class Board:
             # cell placement
             self.grid[pos[0]][pos[1]].value = 5            
             self.placed_cells.append(self.grid[pos[0]][pos[1]])
+            self.placed_groups.append(self.grid[pos[0]][pos[1]].group)
             occupied_cells.append(self.grid[pos[0]][pos[1]])
             # group update            
             # self.groups[self.grid[pos[0]][pos[1]].group].remove(self.grid[pos[0]][pos[1]])
@@ -171,7 +173,8 @@ class Board:
                         released_cells.append(r[pos[1]])
             # cell placement
             self.grid[pos[0]][pos[1]].value -= 5            
-            self.placed_cells.remove(self.grid[pos[0]][pos[1]])            
+            self.placed_cells.remove(self.grid[pos[0]][pos[1]])
+            self.placed_groups.remove(self.grid[pos[0]][pos[1]].group)            
             released_cells.append(self.grid[pos[0]][pos[1]])
             # group update            
             self.groups[self.grid[pos[0]][pos[1]].group].append(self.grid[pos[0]][pos[1]])
@@ -211,6 +214,12 @@ class Board:
             clear_output(wait=True)       
             display(self.ax.figure)
         return self.ax
+    
+    def check_occupied_group(self):        
+        for i, g in enumerate(self.groups):
+            if len(g) == 0 and (i not in self.placed_groups):
+                return True
+        return False
 
     def dump(self, filename=None):
         output = [[0 for j in range(self.shape[1])] for i in range(self.shape[0])]
@@ -227,6 +236,7 @@ class Game:
     def __init__(self, board):
         self.board = board
         self.steps = 0
+        self.time_start = 0
         
     
     def place(self, pos_in):
@@ -250,11 +260,13 @@ class Game:
             # for g in self.board.groups:
             #     print(g)     
     
-    def play(self, node=None, max_step=0):
-        if self.steps > max_step:
-            return
+    def play(self, node=None, max_step=None):
+        if max_step:
+            if self.steps > max_step:
+                return
         self.steps += 1        
         if not node:
+            self.time_start=time.time()
             next_moves = self.board.get_next_moves()
             for m in next_moves:                
                 result = self.play(Node(self.board, m), max_step)
@@ -264,10 +276,10 @@ class Game:
         else:            
             # timestr = time.strftime("%Y%m%d-%H-%M-%S")
             node.board.place(node.move)
-            node.board.dump(f'.\\dump\\steps_{self.steps}_dump.json')
+            # node.board.dump(f'.\\dump\\steps_{self.steps}_dump.json')
             next_moves = node.board.get_next_moves()
             print(f'step {self.steps}: place at {node.move}, next move number: {len(next_moves)}')
-            if len(next_moves) > 0:
+            if len(next_moves) > 0 and (not self.board.check_occupied_group()):
                 for m in next_moves:
                     result = None
                     next_node = Node(node.board, m)
@@ -277,14 +289,20 @@ class Game:
                         return result
                     node.board.undo_last()
             else:
+                if self.board.check_occupied_group():
+                    print('game stuck, reverting the board (a group was occupied before placement)')
+                    return
+                
                 if node.board.check():
-                    print('game stuck, reverting the board')
-                    node.board.undo_last()
-                    node.board.dump(f'.\\dump\\steps_{self.steps}_dump_stuck.json')
+                    print('game stuck, reverting the board (no available moves)')
+                    # node.board.undo_last()
+                    # node.board.dump(f'.\\dump\\steps_{self.steps}_dump_stuck.json')
                     # node.board.dump(f'.\\dump\\after_dump_{timestr}.json')
                     return
                 else:
-                    print('game finished')
+                    print(f'game finished after {self.steps} steps')
+                    time_passed=round(time.time() - self.time_start, 8)
+                    print(f'Time elapsed: {time_passed} secs')
                     return node.board.placed_cells
 
         pass    
