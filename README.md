@@ -46,3 +46,5 @@ from helpers.visualize import draw_board
 board = Board([[0, 1], [1, 0]])
 draw_board(board)
 ```
+
+See `visualization_demo.ipynb` for a fuller notebook walkthrough.

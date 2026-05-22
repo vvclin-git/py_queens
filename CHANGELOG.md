@@ -11,3 +11,4 @@
 - Added a client-side region connectivity guardrail that highlights disconnected cells and blocks solving.
 - Vendored Pyodide for the level editor so GitHub Pages deployments can run the solver without CDN access.
 - Moved matplotlib drawing out of the solver core and into an optional notebook preview helper.
+- Added a notebook walkthrough for the optional matplotlib visualization pipeline.
