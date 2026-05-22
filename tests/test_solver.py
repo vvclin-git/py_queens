@@ -1,4 +1,6 @@
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -57,3 +59,26 @@ def test_solve_regions_with_stats_returns_solution_and_diagnostics():
     assert isinstance(stats['backtracks'], int)
     assert stats['backtracks'] >= 0
     assert stats['solved'] is True
+
+
+def test_queens_import_does_not_import_matplotlib():
+    result = subprocess.run(
+        [
+            sys.executable,
+            '-c',
+            "import sys; import queens; raise SystemExit('matplotlib' in sys.modules)",
+        ],
+        cwd=ROOT,
+        check=False,
+    )
+    assert result.returncode == 0
+
+
+def test_optional_visualization_returns_axis_when_matplotlib_available():
+    pytest.importorskip('matplotlib')
+    from helpers.visualize import draw_board
+    from queens import Board
+
+    board = Board([[0, 1], [1, 0]])
+    ax = draw_board(board, cell_output=False)
+    assert ax.figure is not None

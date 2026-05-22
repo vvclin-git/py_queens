@@ -29,3 +29,20 @@ depend on a CDN at runtime.
 
 The editor also validates that each region is 4-connected. Disconnected extra
 components are highlighted and Play/Solve is disabled until the board is fixed.
+
+## Optional notebook preview
+
+The solver core does not require matplotlib. Install the optional visualization
+dependencies when you want quick previews in a notebook:
+
+```powershell
+uv pip install -e ".[viz]"
+```
+
+```python
+from queens import Board
+from helpers.visualize import draw_board
+
+board = Board([[0, 1], [1, 0]])
+draw_board(board)
+```

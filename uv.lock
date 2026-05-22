@@ -418,16 +418,17 @@ name = "py-queens"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
-    { name = "asttokens" },
-    { name = "comm" },
-    { name = "ipympl" },
-    { name = "ipython" },
-    { name = "ipywidgets" },
-    { name = "matplotlib" },
     { name = "pillow" },
     { name = "pygame" },
     { name = "pygbag" },
     { name = "pymunk" },
+]
+
+[package.optional-dependencies]
+viz = [
+    { name = "ipympl" },
+    { name = "ipython" },
+    { name = "matplotlib" },
 ]
 
 [package.dev-dependencies]
@@ -437,17 +438,15 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "asttokens", specifier = ">=3.0.0" },
-    { name = "comm", specifier = ">=0.2.3" },
-    { name = "ipympl", specifier = ">=0.9.8" },
-    { name = "ipython", specifier = ">=9.6.0" },
-    { name = "ipywidgets", specifier = ">=8.1.8" },
-    { name = "matplotlib", specifier = ">=3.10.7" },
+    { name = "ipympl", marker = "extra == 'viz'", specifier = ">=0.9.8" },
+    { name = "ipython", marker = "extra == 'viz'", specifier = ">=9.6.0" },
+    { name = "matplotlib", marker = "extra == 'viz'", specifier = ">=3.10.7" },
     { name = "pillow", specifier = ">=10.2.0" },
     { name = "pygame", specifier = ">=2.5.2" },
     { name = "pygbag", specifier = ">=0.9.2" },
     { name = "pymunk", specifier = ">=6.5.0" },
 ]
+provides-extras = ["viz"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest", specifier = ">=9.0.3" }]

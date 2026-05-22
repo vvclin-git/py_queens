@@ -22,7 +22,7 @@ class Node:
       
 
 class Board:
-    def __init__(self, group_map, value=None, enable_draw=False):
+    def __init__(self, group_map, value=None):
         self.group_map = group_map  
         self.num_groups = max(max(row) for row in self.group_map) + 1  # maximum value in loaded_board                          
         self.shape = (len(self.group_map), len(self.group_map[0]))
@@ -49,33 +49,7 @@ class Board:
                 # except:
                 #     print(i, j, self.grid[i][j].group)
         
-        self.custom_cmap = None
-        self.ax = None
-        if enable_draw:
-            self.init_draw()
-        
         return
-   
-    
-    def init_draw(self):
-        from matplotlib.colors import ListedColormap
-        import matplotlib.pyplot as plt
-
-        cmap_base = plt.get_cmap('gist_rainbow')
-        n_color = cmap_base.N
-        # Generate color indices for each value from 1 to N.
-        color_indices = [(n_color / self.num_groups) * v for v in range(1, self.num_groups + 1)]
-        colors = [cmap_base(int(idx) % n_color) for idx in color_indices]
-        self.custom_cmap = ListedColormap(colors)
-
-        fig, ax = plt.subplots()
-        plt.close(fig)
-        ax.pcolor(self.group_map, cmap=self.custom_cmap, edgecolors='k', linewidths=1)
-        ax.set_axis_off()
-        ax.invert_yaxis()
-        ax.set_aspect('equal')
-        self.ax = ax        
-        return 
     
     def check(self):
         return self.occupied_group_num != self.num_groups
@@ -202,22 +176,6 @@ class Board:
                     next_moves.append(c.pos)
         return next_moves
 
-    def draw(self, cell_output=True):
-        from IPython.display import clear_output, display
-
-        self.init_draw()
-        for i in range(self.shape[0]):
-            for j in range(self.shape[1]):
-                if self.grid[i][j].value == 6:                    
-                    self.ax.plot(j + 0.5, i + 0.5, marker='o', markersize=12, markeredgecolor='black', markerfacecolor='yellow')
-                elif self.grid[i][j].value > 0 and self.grid[i][j].value < 6:
-                    self.ax.plot(j + 0.5, i + 0.5, marker='x', markersize=12, markeredgecolor='black', markerfacecolor='black')
-        # plt.clf()
-        if cell_output:
-            clear_output(wait=True)       
-            display(self.ax.figure)
-        return self.ax
-    
     def check_occupied_group(self):        
         for i, g in enumerate(self.groups):
             if len(g) == 0 and (i not in self.placed_groups):
@@ -236,23 +194,24 @@ class Board:
         
 
 class Game:
-    def __init__(self, board, verbose=True):
+    def __init__(self, board, verbose=True, draw_callback=None):
         self.board = board
         self.verbose = verbose
+        self.draw_callback = draw_callback
         self.steps = 0
         self.backtracks = 0
         self.time_start = 0
         
     
     def place(self, pos_in):
-        from IPython.display import display
         from helpers import print_color_table
 
         pos = (pos_in[1] - 1, pos_in[0] - 1)
         if self.board.grid[pos[0]][pos[1]].value == 0:
             self.board.place(pos_in)
-            self.board.draw()
-            display(print_color_table(self.board.dump(), self.board.group_map))
+            if self.draw_callback:
+                self.draw_callback(self.board)
+            print_color_table(self.board.dump(), self.board.group_map)
             # print(f'place on {pos_in}')
             # print(f'number of groups occupied: {self.board.occupied_group_num} / {self.board.num_groups}')
             # for g in self.board.groups:
@@ -261,8 +220,9 @@ class Game:
             #     print('you won!') 
         else:
             self.board.remove(pos_in)
-            self.board.draw()
-            display(print_color_table(self.board.dump(), self.board.group_map))
+            if self.draw_callback:
+                self.draw_callback(self.board)
+            print_color_table(self.board.dump(), self.board.group_map)
             # print(f'remove on {pos_in}')
             # print(f'number of groups occupied: {self.board.occupied_group_num} / {self.board.num_groups}')
             # for g in self.board.groups:
@@ -365,12 +325,14 @@ def solve_regions_with_stats(regions):
 
 if __name__=='__main__':
     import json
+    from pathlib import Path
     
-    with open('test_board.json', 'r') as f:
+    with (Path(__file__).resolve().parent / 'games' / 'test_board.json').open() as f:
         loaded_board = json.load(f)
-    board = Board(loaded_board, enable_draw=True)
+    board = Board(loaded_board)
     
-    from helpers import print_color_table
+    from helpers import draw_board, print_color_table
+    draw_board(board)
     print_color_table(board.dump(), board.group_map) 
     
     
