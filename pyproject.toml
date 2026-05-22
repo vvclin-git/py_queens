@@ -16,3 +16,8 @@ dependencies = [
   "ipywidgets>=8.1.8",
   "ipympl>=0.9.8",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+]

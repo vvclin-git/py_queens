@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Queens Level Editor</title>
+    <link rel="stylesheet" href="./style.css">
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.27.2/full/pyodide.js" defer></script>
+    <script src="./app.js" defer></script>
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <h1>Queens Level Editor</h1>
+        <p>Parse screenshots, edit region maps, and solve with the Python solver in-browser.</p>
+      </div>
+      <div class="status-pill" id="app-status">Ready</div>
+    </header>
+
+    <nav class="tabs" aria-label="Level editor sections">
+      <button class="tab-button active" data-tab="parser" type="button">Parser</button>
+      <button class="tab-button" data-tab="editor" type="button">Editor</button>
+      <button class="tab-button" data-tab="play" type="button">Play/Solve</button>
+    </nav>
+
+    <main>
+      <section class="tab-panel active" id="tab-parser">
+        <div class="toolbar">
+          <label class="file-control">
+            <span>Screenshot</span>
+            <input id="screenshot-input" type="file" accept="image/*">
+          </label>
+          <label>
+            <span>Board size</span>
+            <input id="board-size" type="number" min="2" max="16" step="1" value="8">
+          </label>
+          <label>
+            <span>Color count</span>
+            <input id="color-count" type="number" min="1" max="32" step="1" value="8">
+          </label>
+          <button id="parse-button" type="button">Parse Crop</button>
+        </div>
+        <div class="workspace two-column">
+          <div class="canvas-shell">
+            <canvas id="preview-canvas" width="720" height="520"></canvas>
+          </div>
+          <aside class="side-panel">
+            <h2>Crop</h2>
+            <p>Drag on the preview to define the grid bounds. Resize by dragging a new rectangle.</p>
+            <dl class="metrics">
+              <div><dt>X</dt><dd id="crop-x">0</dd></div>
+              <div><dt>Y</dt><dd id="crop-y">0</dd></div>
+              <div><dt>W</dt><dd id="crop-w">0</dd></div>
+              <div><dt>H</dt><dd id="crop-h">0</dd></div>
+            </dl>
+            <div id="parse-message" class="message"></div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="tab-editor">
+        <div class="toolbar">
+          <button id="export-button" type="button">Export JSON</button>
+          <label class="file-control">
+            <span>Import JSON</span>
+            <input id="json-input" type="file" accept="application/json,.json">
+          </label>
+          <button id="clear-button" type="button">Clear</button>
+          <button id="send-play-button" type="button">Open In Play/Solve</button>
+        </div>
+        <div class="workspace two-column">
+          <div class="editor-review">
+            <div>
+              <h2>Parsed Board</h2>
+              <div id="editor-grid" class="board-grid" aria-label="Editable region grid"></div>
+            </div>
+            <div>
+              <h2>Cropped Source</h2>
+              <div class="canvas-shell crop-review-shell">
+                <canvas id="crop-preview-canvas" width="432" height="432"></canvas>
+              </div>
+            </div>
+            <textarea id="json-output" spellcheck="false" aria-label="Exported JSON"></textarea>
+          </div>
+          <aside class="side-panel">
+            <h2>Regions</h2>
+            <div id="palette" class="palette"></div>
+            <div id="editor-message" class="message"></div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="tab-play">
+        <div class="toolbar">
+          <button id="solve-button" type="button">Solve</button>
+          <button id="reset-play-button" type="button">Reset Play</button>
+        </div>
+        <div class="workspace two-column">
+          <div id="play-grid" class="board-grid" aria-label="Playable queens grid"></div>
+          <aside class="side-panel">
+            <h2>Solver</h2>
+            <div id="solver-message" class="message"></div>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

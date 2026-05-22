@@ -1,11 +1,7 @@
 
-
-from matplotlib.colors import ListedColormap
-import matplotlib.pyplot as plt
-from IPython.display import clear_output, display
-from helpers import print_color_table
 import time
 import json
+import copy
 
 
 class Cell:
@@ -26,7 +22,7 @@ class Node:
       
 
 class Board:
-    def __init__(self, group_map, value=None):
+    def __init__(self, group_map, value=None, enable_draw=False):
         self.group_map = group_map  
         self.num_groups = max(max(row) for row in self.group_map) + 1  # maximum value in loaded_board                          
         self.shape = (len(self.group_map), len(self.group_map[0]))
@@ -53,20 +49,25 @@ class Board:
                 # except:
                 #     print(i, j, self.grid[i][j].group)
         
-        cmap_base = plt.get_cmap('gist_rainbow')
-        n_color = cmap_base.N
-        # Generate color indices for each value from 1 to N
-        color_indices = [(n_color / self.num_groups) * v for v in range(1, self.num_groups + 1)]
-        colors = [cmap_base(int(idx) % n_color) for idx in color_indices]
-        self.custom_cmap = ListedColormap(colors)
-
-        self.init_draw()
+        self.custom_cmap = None
+        self.ax = None
+        if enable_draw:
+            self.init_draw()
         
         return
    
     
     def init_draw(self):
-        
+        from matplotlib.colors import ListedColormap
+        import matplotlib.pyplot as plt
+
+        cmap_base = plt.get_cmap('gist_rainbow')
+        n_color = cmap_base.N
+        # Generate color indices for each value from 1 to N.
+        color_indices = [(n_color / self.num_groups) * v for v in range(1, self.num_groups + 1)]
+        colors = [cmap_base(int(idx) % n_color) for idx in color_indices]
+        self.custom_cmap = ListedColormap(colors)
+
         fig, ax = plt.subplots()
         plt.close(fig)
         ax.pcolor(self.group_map, cmap=self.custom_cmap, edgecolors='k', linewidths=1)
@@ -202,6 +203,8 @@ class Board:
         return next_moves
 
     def draw(self, cell_output=True):
+        from IPython.display import clear_output, display
+
         self.init_draw()
         for i in range(self.shape[0]):
             for j in range(self.shape[1]):
@@ -233,13 +236,18 @@ class Board:
         
 
 class Game:
-    def __init__(self, board):
+    def __init__(self, board, verbose=True):
         self.board = board
+        self.verbose = verbose
         self.steps = 0
+        self.backtracks = 0
         self.time_start = 0
         
     
     def place(self, pos_in):
+        from IPython.display import display
+        from helpers import print_color_table
+
         pos = (pos_in[1] - 1, pos_in[0] - 1)
         if self.board.grid[pos[0]][pos[1]].value == 0:
             self.board.place(pos_in)
@@ -268,17 +276,19 @@ class Game:
         if not node:
             self.time_start=time.time()
             next_moves = self.board.get_next_moves()
-            for m in next_moves:                
+            for m in next_moves:
                 result = self.play(Node(self.board, m), max_step)
                 if result:
                     return result
+                self.backtracks += 1
                 self.board.undo_last()
         else:            
             # timestr = time.strftime("%Y%m%d-%H-%M-%S")
             node.board.place(node.move)
             # node.board.dump(f'.\\dump\\steps_{self.steps}_dump.json')
             next_moves = node.board.get_next_moves()
-            print(f'step {self.steps}: place at {node.move}, next move number: {len(next_moves)}')
+            if self.verbose:
+                print(f'step {self.steps}: place at {node.move}, next move number: {len(next_moves)}')
             if len(next_moves) > 0 and (not self.board.check_occupied_group()):
                 for m in next_moves:
                     result = None
@@ -287,34 +297,78 @@ class Game:
                     result = self.play(next_node, max_step)
                     if result:
                         return result
+                    self.backtracks += 1
                     node.board.undo_last()
             else:
                 if self.board.check_occupied_group():
-                    print('game stuck, reverting the board (a group was occupied before placement)')
+                    if self.verbose:
+                        print('game stuck, reverting the board (a group was occupied before placement)')
                     return
                 
                 if node.board.check():
-                    print('game stuck, reverting the board (no available moves)')
+                    if self.verbose:
+                        print('game stuck, reverting the board (no available moves)')
                     # node.board.undo_last()
                     # node.board.dump(f'.\\dump\\steps_{self.steps}_dump_stuck.json')
                     # node.board.dump(f'.\\dump\\after_dump_{timestr}.json')
                     return
                 else:
-                    print(f'game finished after {self.steps} steps')
-                    time_passed=round(time.time() - self.time_start, 8)
-                    print(f'Time elapsed: {time_passed} secs')
+                    if self.verbose:
+                        print(f'game finished after {self.steps} steps')
+                        time_passed=round(time.time() - self.time_start, 8)
+                        print(f'Time elapsed: {time_passed} secs')
                     return node.board.placed_cells
 
         pass    
-    
-    
+
+
+def validate_regions(regions):
+    if not isinstance(regions, list) or len(regions) == 0:
+        raise ValueError('regions must be a non-empty 2D list')
+    size = len(regions)
+    for row in regions:
+        if not isinstance(row, list) or len(row) != size:
+            raise ValueError('regions must be a square 2D list')
+        for value in row:
+            if not isinstance(value, int) or value < 0:
+                raise ValueError('region ids must be non-negative integers')
+
+
+def solve_regions(regions):
+    """Solve a region matrix and return queen cells as row/col/step dicts."""
+    return solve_regions_with_stats(regions)['solution']
+
+
+def solve_regions_with_stats(regions):
+    """Solve a region matrix and include search diagnostics."""
+    validate_regions(regions)
+    board = Board(copy.deepcopy(regions))
+    game = Game(board, verbose=False)
+    time_start = time.process_time()
+    result = game.play()
+    cpu_seconds = time.process_time() - time_start
+    solution = []
+    if result:
+        solution = [
+        {'row': cell.pos[1] - 1, 'col': cell.pos[0] - 1, 'step': index + 1}
+        for index, cell in enumerate(result)
+        ]
+    return {
+        'solution': solution,
+        'stats': {
+            'cpu_seconds': cpu_seconds,
+            'steps': game.steps,
+            'backtracks': game.backtracks,
+            'solved': bool(solution),
+        },
+    }
 
 if __name__=='__main__':
     import json
     
     with open('test_board.json', 'r') as f:
         loaded_board = json.load(f)
-    board = Board(loaded_board)
+    board = Board(loaded_board, enable_draw=True)
     
     from helpers import print_color_table
     print_color_table(board.dump(), board.group_map) 
