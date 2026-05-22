@@ -5,6 +5,7 @@
     '#76c7c0', '#f2a7c6', '#b9c5ff', '#f0d36f',
     '#9bd7a8', '#d0b3ff', '#ffb0a6', '#a6dcef'
   ];
+  const pyodideIndexUrl = './vendor/pyodide/';
 
   const state = {
     regions: createMatrix(8, 0),
@@ -600,9 +601,9 @@ json.dumps(solve_regions_with_stats(json.loads(regions_json)))
   async function getPyodide() {
     if (state.pyodide) return state.pyodide;
     if (typeof loadPyodide !== 'function') {
-      throw new Error('Pyodide failed to load from the CDN.');
+      throw new Error('Pyodide failed to load from ./vendor/pyodide/.');
     }
-    const pyodide = await loadPyodide();
+    const pyodide = await loadPyodide({ indexURL: pyodideIndexUrl });
     const solverSource = await fetchSolverSource();
     pyodide.FS.writeFile('/home/pyodide/queens.py', solverSource);
     state.pyodide = pyodide;

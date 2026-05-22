@@ -2,7 +2,7 @@
 
 Static browser tooling for converting LinkedIn Queens screenshots into JSON fixtures,
 editing region maps, and solving the edited level with the Python solver through
-Pyodide.
+the vendored Pyodide runtime.
 
 ## Run
 
@@ -18,7 +18,10 @@ Then open:
 http://127.0.0.1:8000/tools/level_editor/
 ```
 
-Pyodide is loaded from a CDN, so the first solver run requires network access.
+Pyodide is vendored under `vendor/pyodide/`, so the editor does not need a CDN
+at runtime. Serve the files over HTTP instead of opening `index.html` directly,
+because browsers restrict the local file fetches used for `queens.py` and
+Pyodide assets.
 
 ## Workflow
 
